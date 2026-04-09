@@ -1,0 +1,14 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "devCommand": "next dev",
+  "installCommand": "npm install",
+  "functions": {
+    "app/api/analyze-selfie/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/analyze-outfit/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}
