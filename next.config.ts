@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "**.myntassets.com",
+      },
+      {
+        protocol: "https",
         hostname: "**.ajio.com",
       },
     ],
