@@ -7,21 +7,10 @@ import { SelfieAnalysisResult } from "@/lib/types";
 
 type Step = "upload" | "analyzing" | "result";
 
-const SKIN_TONE_COLORS: Record<string, string> = {
-  fair: "#FDDBB4",
-  light: "#EEC99A",
-  medium: "#C68642",
-  olive: "#8D5524",
-  brown: "#6B3A2A",
-  dark: "#3B1F0E",
-};
-
-const BODY_TYPE_ICONS: Record<string, string> = {
-  hourglass: "⧖",
-  pear: "🍐",
-  apple: "🍎",
-  rectangle: "▬",
-  inverted_triangle: "△",
+const UNDERTONE_COLORS: Record<string, string> = {
+  warm: "#C8860A",
+  cool: "#5B6EAE",
+  neutral: "#8A7A6A",
 };
 
 export default function OnboardingPage() {
@@ -76,12 +65,8 @@ export default function OnboardingPage() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          // Need to sign in first
-          const authRes = await fetch("/api/auth/anonymous", {
-            method: "POST",
-          });
+          const authRes = await fetch("/api/auth/anonymous", { method: "POST" });
           if (authRes.ok) {
-            // Retry
             const retryRes = await fetch("/api/analyze-selfie", {
               method: "POST",
               body: formData,
@@ -115,25 +100,19 @@ export default function OnboardingPage() {
           ← Back
         </button>
         <div className="flex-1" />
-        <span className="text-white/30 text-sm">Step 1 of 1</span>
+        <span className="text-white/30 text-sm">Onboarding</span>
       </div>
 
       {step === "upload" && (
         <>
-          <h1 className="text-2xl font-bold mb-2">
-            First, let&apos;s read you.
-          </h1>
+          <h1 className="text-2xl font-bold mb-2">First, let&apos;s read you.</h1>
           <p className="text-white/50 mb-8 leading-relaxed">
-            Upload a clear selfie — face and upper body ideally. AI will extract
-            your skin tone and body type to build your style profile.
+            Upload a clear selfie — face and upper body ideally. AI will analyse
+            your skin tone, face shape, and body type to build your style profile.
           </p>
 
-          {/* Drop zone */}
           <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragging(true);
-            }}
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
@@ -144,12 +123,7 @@ export default function OnboardingPage() {
           >
             {previewUrl ? (
               <>
-                <Image
-                  src={previewUrl}
-                  alt="Your selfie"
-                  fill
-                  className="object-cover"
-                />
+                <Image src={previewUrl} alt="Your selfie" fill className="object-cover" />
                 <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                   <span className="text-white font-medium text-sm bg-black/50 px-3 py-1.5 rounded-full">
                     Change photo
@@ -160,16 +134,10 @@ export default function OnboardingPage() {
               <>
                 <div className="text-4xl">📸</div>
                 <div className="text-center">
-                  <p className="text-white/70 font-medium">
-                    Tap to upload a selfie
-                  </p>
-                  <p className="text-white/30 text-sm mt-1">
-                    or drag and drop here
-                  </p>
+                  <p className="text-white/70 font-medium">Tap to upload a selfie</p>
+                  <p className="text-white/30 text-sm mt-1">or drag and drop here</p>
                 </div>
-                <p className="text-white/20 text-xs">
-                  JPG, PNG or WEBP · Max 10MB
-                </p>
+                <p className="text-white/20 text-xs">JPG, PNG or WEBP · Max 10MB</p>
               </>
             )}
           </div>
@@ -186,9 +154,7 @@ export default function OnboardingPage() {
             }}
           />
 
-          {error && (
-            <p className="text-red-400 text-sm mt-3 text-center">{error}</p>
-          )}
+          {error && <p className="text-red-400 text-sm mt-3 text-center">{error}</p>}
 
           <div className="mt-6 space-y-3">
             <button
@@ -198,24 +164,17 @@ export default function OnboardingPage() {
             >
               Analyse my style →
             </button>
-
             <p className="text-white/25 text-xs text-center">
-              Your photo is processed securely. We don&apos;t store it beyond
-              your profile.
+              Your photo is processed securely. We don&apos;t store it beyond your profile.
             </p>
           </div>
 
-          {/* Tips */}
           <div className="mt-8 card-glass p-4">
             <p className="text-white/40 text-xs font-semibold uppercase tracking-wider mb-3">
               For best results
             </p>
             <ul className="space-y-2">
-              {[
-                "Good natural lighting",
-                "Face and upper body visible",
-                "Neutral background if possible",
-              ].map((tip) => (
+              {["Good natural lighting", "Face and upper body visible", "Neutral background if possible"].map((tip) => (
                 <li key={tip} className="flex items-center gap-2 text-white/50 text-sm">
                   <span className="text-fuchsia-400 text-xs">✓</span>
                   {tip}
@@ -230,125 +189,140 @@ export default function OnboardingPage() {
         <div className="flex-1 flex flex-col items-center justify-center text-center gap-6">
           {previewUrl && (
             <div className="relative w-32 h-32 rounded-full overflow-hidden border-2 border-fuchsia-500/50">
-              <Image
-                src={previewUrl}
-                alt="Analyzing"
-                fill
-                className="object-cover"
-              />
+              <Image src={previewUrl} alt="Analyzing" fill className="object-cover" />
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                 <div className="w-8 h-8 border-2 border-fuchsia-400 border-t-transparent rounded-full animate-spin" />
               </div>
             </div>
           )}
-
           <div>
             <h2 className="text-xl font-bold mb-2">Reading you...</h2>
-            <p className="text-white/50 text-sm">
-              AI is analysing your skin tone and body type
-            </p>
+            <p className="text-white/50 text-sm">AI is building your full style profile</p>
           </div>
-
           <div className="card-glass p-4 w-full space-y-3">
-            {["Detecting skin tone", "Analysing body type", "Building style profile"].map(
-              (item, i) => (
-                <div key={item} className="flex items-center gap-3">
-                  <div
-                    className="w-4 h-4 rounded-full border-2 border-fuchsia-400 border-t-transparent animate-spin shrink-0"
-                    style={{ animationDelay: `${i * 0.2}s` }}
-                  />
-                  <span className="text-white/60 text-sm">{item}</span>
-                </div>
-              )
-            )}
+            {[
+              "Detecting skin tone & undertone",
+              "Analysing face shape",
+              "Reading body type",
+              "Building colour palette",
+            ].map((item, i) => (
+              <div key={item} className="flex items-center gap-3">
+                <div
+                  className="w-4 h-4 rounded-full border-2 border-fuchsia-400 border-t-transparent animate-spin shrink-0"
+                  style={{ animationDelay: `${i * 0.2}s` }}
+                />
+                <span className="text-white/60 text-sm">{item}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       {step === "result" && analysis && (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-5">
           <div className="text-center">
             <div className="text-3xl mb-3">✨</div>
             <h1 className="text-2xl font-bold mb-2">Your style profile</h1>
-            <p className="text-white/50 text-sm">
-              Here&apos;s what AI picked up about you
-            </p>
+            <p className="text-white/50 text-sm">Here&apos;s what AI picked up about you</p>
           </div>
 
-          {/* Selfie preview */}
           {previewUrl && (
             <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-fuchsia-500/50 mx-auto">
-              <Image
-                src={previewUrl}
-                alt="Your selfie"
-                fill
-                className="object-cover"
-              />
+              <Image src={previewUrl} alt="Your selfie" fill className="object-cover" />
             </div>
           )}
 
-          {/* Skin tone card */}
+          {/* Skin tone + undertone */}
           <div className="card-glass p-5">
+            <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-3">
+              Skin Tone
+            </p>
             <div className="flex items-center gap-3 mb-3">
               <div
-                className="w-10 h-10 rounded-full border-2 border-white/20 shrink-0"
-                style={{
-                  backgroundColor:
-                    SKIN_TONE_COLORS[analysis.skin_tone] || "#C68642",
-                }}
+                className="w-6 h-6 rounded-full border border-white/20 shrink-0"
+                style={{ backgroundColor: UNDERTONE_COLORS[analysis.undertone] || "#C68642" }}
               />
-              <div>
-                <p className="text-white/40 text-xs uppercase tracking-wider font-semibold">
-                  Skin Tone
-                </p>
-                <p className="font-bold text-lg capitalize">
-                  {analysis.skin_tone}
-                </p>
-              </div>
+              <p className="font-bold text-lg capitalize">
+                {analysis.skin_tone}
+                <span className="text-white/40 font-normal text-sm ml-2">
+                  · {analysis.undertone} undertone
+                </span>
+              </p>
             </div>
-            <p className="text-white/60 text-sm leading-relaxed">
-              {analysis.skin_tone_description}
-            </p>
           </div>
 
-          {/* Body type card */}
+          {/* Face shape */}
           <div className="card-glass p-5">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xl shrink-0">
-                {BODY_TYPE_ICONS[analysis.body_type] || "👤"}
-              </div>
-              <div>
-                <p className="text-white/40 text-xs uppercase tracking-wider font-semibold">
-                  Body Type
-                </p>
-                <p className="font-bold text-lg capitalize">
-                  {analysis.body_type.replace("_", " ")}
-                </p>
-              </div>
-            </div>
-            <p className="text-white/60 text-sm leading-relaxed">
-              {analysis.body_type_description}
+            <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-2">
+              Face Shape
             </p>
+            <p className="font-bold text-lg capitalize mb-2">{analysis.face_shape}</p>
+            {analysis.best_necklines && (
+              <p className="text-white/60 text-sm leading-relaxed">{analysis.best_necklines}</p>
+            )}
           </div>
+
+          {/* Body type */}
+          <div className="card-glass p-5">
+            <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-2">
+              Body Type
+            </p>
+            <p className="font-bold text-lg capitalize mb-2">{analysis.body_type}</p>
+            {analysis.best_fits && (
+              <p className="text-white/60 text-sm leading-relaxed">{analysis.best_fits}</p>
+            )}
+          </div>
+
+          {/* Color palette */}
+          {(analysis.colors_that_work.length > 0 || analysis.colors_to_avoid.length > 0) && (
+            <div className="card-glass p-5">
+              <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-4">
+                Your Colour Palette
+              </p>
+              {analysis.colors_that_work.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-emerald-400 text-xs font-semibold mb-2">Always works</p>
+                  <div className="flex flex-wrap gap-2">
+                    {analysis.colors_that_work.map((color) => (
+                      <span
+                        key={color}
+                        className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-white/70 text-xs"
+                      >
+                        {color}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {analysis.colors_to_avoid.length > 0 && (
+                <div>
+                  <p className="text-red-400 text-xs font-semibold mb-2">Avoid</p>
+                  <div className="flex flex-wrap gap-2">
+                    {analysis.colors_to_avoid.map((color) => (
+                      <span
+                        key={color}
+                        className="px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full text-white/50 text-xs"
+                      >
+                        {color}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Style notes */}
           <div className="card-glass p-5 border-fuchsia-500/20">
             <p className="text-fuchsia-400 text-xs font-semibold uppercase tracking-wider mb-2">
               Style Notes
             </p>
-            <p className="text-white/80 text-sm leading-relaxed">
-              {analysis.style_notes}
-            </p>
+            <p className="text-white/80 text-sm leading-relaxed">{analysis.style_notes}</p>
           </div>
 
-          {error && (
-            <p className="text-red-400 text-sm text-center">{error}</p>
-          )}
+          {error && <p className="text-red-400 text-sm text-center">{error}</p>}
 
-          <button
-            onClick={() => router.push("/fitcheck")}
-            className="btn-primary w-full text-base py-4"
-          >
+          <button onClick={() => router.push("/fitcheck")} className="btn-primary w-full text-base py-4">
             Start checking outfits →
           </button>
 

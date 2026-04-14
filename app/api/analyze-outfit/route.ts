@@ -13,7 +13,8 @@ async function fetchProductImage(url: string): Promise<string | null> {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15",
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
       signal: AbortSignal.timeout(8000),
     });
@@ -22,24 +23,21 @@ async function fetchProductImage(url: string): Promise<string | null> {
 
     const html = await response.text();
 
-    // Try to extract OG image or main product image
-    const ogImageMatch = html.match(
-      /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i
-    ) || html.match(
-      /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i
-    );
+    const ogImageMatch =
+      html.match(
+        /<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i
+      ) ||
+      html.match(
+        /<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i
+      );
 
-    if (ogImageMatch?.[1]) {
-      return ogImageMatch[1];
-    }
+    if (ogImageMatch?.[1]) return ogImageMatch[1];
 
-    // Myntra-specific: look for product image URLs
     if (url.includes("myntra.com")) {
       const myntraMatch = html.match(/"image":"([^"]+\.jpg[^"]*)"/);
       if (myntraMatch?.[1]) return myntraMatch[1].replace(/\\/g, "");
     }
 
-    // Ajio-specific
     if (url.includes("ajio.com")) {
       const ajioMatch = html.match(/\"image\":\"([^\"]+)\"/);
       if (ajioMatch?.[1]) return ajioMatch[1].replace(/\\/g, "");
@@ -49,6 +47,49 @@ async function fetchProductImage(url: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+function buildSystemPrompt(profile: Record<string, unknown>): string {
+  const colorsWork = Array.isArray(profile.colors_that_work)
+    ? (profile.colors_that_work as string[]).join(", ")
+    : "";
+  const colorsAvoid = Array.isArray(profile.colors_to_avoid)
+    ? (profile.colors_to_avoid as string[]).join(", ")
+    : "";
+
+  return `You are Fitcheck's garment analysis engine — a brutally honest but supportive fashion friend. Not corporate. Not generic. Real talk.
+
+You have the user's full style profile:
+- Skin tone: ${profile.skin_tone} with ${profile.undertone} undertones
+- Face shape: ${profile.face_shape}
+- Best necklines/collars for their face: ${profile.best_necklines}
+- Body type: ${profile.body_type}
+- Best fits/silhouettes for their body: ${profile.best_fits}
+- Colors that work for them: ${colorsWork}
+- Colors to avoid: ${colorsAvoid}
+- Style notes: ${profile.style_notes}
+
+When evaluating the garment, reference their SPECIFIC profile — skin tone undertone vs garment colour, whether the neckline suits their face shape, whether the silhouette flatters their body type. Be precise. Be personal. No generic fashion advice.
+
+Respond ONLY with valid JSON in this exact structure:
+{
+  "verdict": "yes",
+  "headline": "This is your colour, no debate.",
+  "reasoning": "2-3 sentences explaining the verdict in a conversational, honest tone — reference their specific skin tone, undertone, body type or face shape",
+  "what_works": ["specific reason tied to their profile", "another specific reason"],
+  "what_doesnt": ["specific concern tied to their profile"],
+  "pair_with": ["specific item 1", "specific item 2", "specific item 3"],
+  "confidence": 85
+}
+
+Rules:
+- verdict is "yes", "no", or "maybe"
+- headline is punchy, 1 sentence, honest (friend texting you, not brand copy)
+- what_works: 1-3 items if yes/maybe, empty [] if no
+- what_doesnt: 1-3 items if no/maybe, empty [] if yes
+- pair_with: always 2-4 specific suggestions
+- confidence: 0-100 based on how clearly you can see the garment
+- reference their skin tone undertone when talking about colour — warm/cool/neutral matters`;
 }
 
 export async function POST(request: NextRequest) {
@@ -62,7 +103,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get user's style profile
     const { data: profile, error: profileError } = await supabase
       .from("style_profiles")
       .select("*")
@@ -89,11 +129,9 @@ export async function POST(request: NextRequest) {
       garmentImageBase64 = Buffer.from(bytes).toString("base64");
       garmentMediaType = imageFile.type;
     } else if (productUrl) {
-      // Try to scrape product image
       const scrapedUrl = await fetchProductImage(productUrl);
       if (scrapedUrl) {
         garmentImageUrl = scrapedUrl;
-        // Fetch the image itself
         try {
           const imgResponse = await fetch(scrapedUrl, {
             signal: AbortSignal.timeout(8000),
@@ -105,7 +143,7 @@ export async function POST(request: NextRequest) {
               imgResponse.headers.get("content-type") || "image/jpeg";
           }
         } catch {
-          // Will fall through to URL-only analysis
+          // fall through
         }
       }
     }
@@ -117,45 +155,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const profileContext = `
-USER STYLE PROFILE:
-- Skin tone: ${profile.skin_tone} (${profile.skin_tone_description})
-- Body type: ${profile.body_type} (${profile.body_type_description})
-- Style notes: ${profile.style_notes}
-`;
+    const systemPrompt = buildSystemPrompt(profile);
 
-    const prompt = `You are a brutally honest but supportive fashion friend. Not a corporate stylist. You tell it like it is, with warmth.
-
-${profileContext}
-
-Analyze this garment/outfit against the user's style profile. Give a REAL verdict — not wishy-washy, not overly positive. If it's not great for them, say so clearly but kindly.
-
-${productUrl && !garmentImageBase64 ? `Product URL: ${productUrl}` : ""}
-
-Respond ONLY with valid JSON matching this exact structure:
-{
-  "verdict": "yes",
-  "headline": "This is your color, no debate.",
-  "reasoning": "2-3 sentences explaining the overall verdict in a conversational, honest tone",
-  "what_works": ["specific thing 1", "specific thing 2"],
-  "what_doesnt": ["specific concern 1"],
-  "pair_with": ["specific item suggestion 1", "specific item suggestion 2", "specific item suggestion 3"],
-  "confidence": 85
-}
-
-Rules:
-- verdict is "yes", "no", or "maybe"
-- headline is punchy, 1 sentence, honest (think friend texting you, not brand copy)
-- what_works has 1-3 items (empty array [] if verdict is "no")
-- what_doesnt has 1-3 items (empty array [] if verdict is "yes")
-- pair_with always has 2-4 specific pairing suggestions
-- confidence is 0-100 (how confident you are in your verdict given what you can see)
-- Be specific to THEIR skin tone and body type, not generic advice`;
-
-    const messageContent: Anthropic.MessageParam["content"] = [];
+    const userContent: Anthropic.MessageParam["content"] = [];
 
     if (garmentImageBase64) {
-      messageContent.push({
+      userContent.push({
         type: "image",
         source: {
           type: "base64",
@@ -169,20 +174,18 @@ Rules:
       });
     }
 
-    messageContent.push({
+    userContent.push({
       type: "text",
-      text: prompt,
+      text: productUrl && !garmentImageBase64
+        ? `Evaluate this product for me based on my style profile. Product URL: ${productUrl}`
+        : "Does this garment work for me? Evaluate it against my style profile and give me your honest verdict.",
     });
 
     const response = await anthropic.messages.create({
       model: "claude-opus-4-6",
       max_tokens: 1024,
-      messages: [
-        {
-          role: "user",
-          content: messageContent,
-        },
-      ],
+      system: systemPrompt,
+      messages: [{ role: "user", content: userContent }],
     });
 
     const content = response.content[0];
@@ -202,7 +205,9 @@ Rules:
       garmentImageUrl,
       profile: {
         skin_tone: profile.skin_tone,
+        undertone: profile.undertone,
         body_type: profile.body_type,
+        face_shape: profile.face_shape,
       },
     });
   } catch (error) {

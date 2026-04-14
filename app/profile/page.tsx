@@ -6,13 +6,10 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import type { StyleProfile } from "@/lib/types";
 
-const SKIN_TONE_COLORS: Record<string, string> = {
-  fair: "#FDDBB4",
-  light: "#EEC99A",
-  medium: "#C68642",
-  olive: "#8D5524",
-  brown: "#6B3A2A",
-  dark: "#3B1F0E",
+const UNDERTONE_COLORS: Record<string, string> = {
+  warm: "#C8860A",
+  cool: "#5B6EAE",
+  neutral: "#8A7A6A",
 };
 
 export default function ProfilePage() {
@@ -23,14 +20,9 @@ export default function ProfilePage() {
   useEffect(() => {
     async function loadProfile() {
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) {
-        router.replace("/");
-        return;
-      }
+      if (!user) { router.replace("/"); return; }
 
       const { data } = await supabase
         .from("style_profiles")
@@ -38,15 +30,11 @@ export default function ProfilePage() {
         .eq("user_id", user.id)
         .single();
 
-      if (!data) {
-        router.replace("/onboarding");
-        return;
-      }
+      if (!data) { router.replace("/onboarding"); return; }
 
       setProfile(data);
       setLoading(false);
     }
-
     loadProfile();
   }, [router]);
 
@@ -69,99 +57,101 @@ export default function ProfilePage() {
         >
           ← Back
         </button>
-        <h1 className="text-xl font-bold text-gradient flex-1 text-center">
-          My Style Profile
-        </h1>
+        <h1 className="text-xl font-bold text-gradient flex-1 text-center">My Style Profile</h1>
         <div className="w-12" />
       </div>
 
-      {/* Profile photo */}
       {profile.profile_image_url && (
         <div className="flex justify-center mb-6">
           <div className="relative w-28 h-28 rounded-full overflow-hidden border-2 border-fuchsia-500/50">
-            <Image
-              src={profile.profile_image_url}
-              alt="Your profile"
-              fill
-              className="object-cover"
-            />
+            <Image src={profile.profile_image_url} alt="Your profile" fill className="object-cover" />
           </div>
         </div>
       )}
 
-      {/* Skin tone */}
+      {/* Skin tone + undertone */}
       <div className="card-glass p-5 mb-4">
-        <div className="flex items-center gap-3 mb-3">
+        <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-3">Skin Tone</p>
+        <div className="flex items-center gap-3">
           <div
-            className="w-10 h-10 rounded-full border-2 border-white/20 shrink-0"
-            style={{
-              backgroundColor:
-                SKIN_TONE_COLORS[profile.skin_tone] || "#C68642",
-            }}
+            className="w-6 h-6 rounded-full border border-white/20 shrink-0"
+            style={{ backgroundColor: UNDERTONE_COLORS[profile.undertone] || "#C68642" }}
           />
-          <div>
-            <p className="text-white/40 text-xs uppercase tracking-wider font-semibold">
-              Skin Tone
-            </p>
-            <p className="font-bold text-lg capitalize">{profile.skin_tone}</p>
-          </div>
+          <p className="font-bold text-lg capitalize">
+            {profile.skin_tone}
+            <span className="text-white/40 font-normal text-sm ml-2">
+              · {profile.undertone} undertone
+            </span>
+          </p>
         </div>
-        <p className="text-white/60 text-sm leading-relaxed">
-          {profile.skin_tone_description}
-        </p>
+      </div>
+
+      {/* Face shape */}
+      <div className="card-glass p-5 mb-4">
+        <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-2">Face Shape</p>
+        <p className="font-bold text-lg capitalize mb-2">{profile.face_shape}</p>
+        {profile.best_necklines && (
+          <p className="text-white/60 text-sm leading-relaxed">{profile.best_necklines}</p>
+        )}
       </div>
 
       {/* Body type */}
       <div className="card-glass p-5 mb-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xl shrink-0">
-            👤
-          </div>
-          <div>
-            <p className="text-white/40 text-xs uppercase tracking-wider font-semibold">
-              Body Type
-            </p>
-            <p className="font-bold text-lg capitalize">
-              {profile.body_type.replace("_", " ")}
-            </p>
-          </div>
-        </div>
-        <p className="text-white/60 text-sm leading-relaxed">
-          {profile.body_type_description}
-        </p>
+        <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-2">Body Type</p>
+        <p className="font-bold text-lg capitalize mb-2">{profile.body_type}</p>
+        {profile.best_fits && (
+          <p className="text-white/60 text-sm leading-relaxed">{profile.best_fits}</p>
+        )}
       </div>
+
+      {/* Color palette */}
+      {((profile.colors_that_work?.length > 0) || (profile.colors_to_avoid?.length > 0)) && (
+        <div className="card-glass p-5 mb-4">
+          <p className="text-white/40 text-xs uppercase tracking-wider font-semibold mb-4">Colour Palette</p>
+          {profile.colors_that_work?.length > 0 && (
+            <div className="mb-4">
+              <p className="text-emerald-400 text-xs font-semibold mb-2">Always works</p>
+              <div className="flex flex-wrap gap-2">
+                {profile.colors_that_work.map((color) => (
+                  <span key={color} className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-white/70 text-xs">
+                    {color}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {profile.colors_to_avoid?.length > 0 && (
+            <div>
+              <p className="text-red-400 text-xs font-semibold mb-2">Avoid</p>
+              <div className="flex flex-wrap gap-2">
+                {profile.colors_to_avoid.map((color) => (
+                  <span key={color} className="px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full text-white/50 text-xs">
+                    {color}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Style notes */}
       <div className="card-glass p-5 border-fuchsia-500/20 mb-6">
-        <p className="text-fuchsia-400 text-xs font-semibold uppercase tracking-wider mb-2">
-          Your Style Notes
-        </p>
-        <p className="text-white/80 text-sm leading-relaxed">
-          {profile.style_notes}
-        </p>
+        <p className="text-fuchsia-400 text-xs font-semibold uppercase tracking-wider mb-2">Style Notes</p>
+        <p className="text-white/80 text-sm leading-relaxed">{profile.style_notes}</p>
       </div>
 
-      {/* Last updated */}
       <p className="text-white/20 text-xs text-center mb-6">
         Profile created{" "}
         {new Date(profile.created_at).toLocaleDateString("en-IN", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
+          day: "numeric", month: "long", year: "numeric",
         })}
       </p>
 
-      <button
-        onClick={() => router.push("/fitcheck")}
-        className="btn-primary w-full text-base py-4 mb-3"
-      >
+      <button onClick={() => router.push("/fitcheck")} className="btn-primary w-full text-base py-4 mb-3">
         Check an outfit →
       </button>
-
-      <button
-        onClick={() => router.push("/onboarding")}
-        className="btn-secondary w-full text-sm py-3"
-      >
+      <button onClick={() => router.push("/onboarding")} className="btn-secondary w-full text-sm py-3">
         Update profile with new selfie
       </button>
     </main>

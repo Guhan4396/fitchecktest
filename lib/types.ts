@@ -1,23 +1,39 @@
 export type SkinTone =
   | "fair"
-  | "light"
-  | "medium"
-  | "olive"
-  | "brown"
-  | "dark";
+  | "wheatish"
+  | "medium brown"
+  | "dark brown"
+  | "deep";
+
+export type Undertone = "warm" | "cool" | "neutral";
+
+export type FaceShape =
+  | "oval"
+  | "rectangle"
+  | "square"
+  | "round"
+  | "heart"
+  | "diamond";
 
 export type BodyType =
-  | "hourglass"
-  | "pear"
-  | "apple"
-  | "rectangle"
-  | "inverted_triangle";
+  | "slim/lean"
+  | "athletic"
+  | "average"
+  | "broad shoulders"
+  | "pear shaped"
+  | "plus size";
 
 export interface StyleProfile {
   id: string;
   user_id: string;
-  skin_tone: SkinTone;
-  body_type: BodyType;
+  skin_tone: string;
+  undertone: string;
+  face_shape: string;
+  best_necklines: string;
+  body_type: string;
+  best_fits: string;
+  colors_that_work: string[];
+  colors_to_avoid: string[];
   skin_tone_description: string;
   body_type_description: string;
   style_notes: string;
@@ -27,10 +43,14 @@ export interface StyleProfile {
 }
 
 export interface SelfieAnalysisResult {
-  skin_tone: SkinTone;
-  body_type: BodyType;
-  skin_tone_description: string;
-  body_type_description: string;
+  skin_tone: string;
+  undertone: string;
+  face_shape: string;
+  best_necklines: string;
+  body_type: string;
+  best_fits: string;
+  colors_that_work: string[];
+  colors_to_avoid: string[];
   style_notes: string;
 }
 
