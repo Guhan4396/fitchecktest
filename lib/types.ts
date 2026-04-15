@@ -1,39 +1,21 @@
-export type SkinTone =
-  | "fair"
-  | "wheatish"
-  | "medium brown"
-  | "dark brown"
-  | "deep";
+export type Gender = "men" | "women";
 
 export type Undertone = "warm" | "cool" | "neutral";
-
-export type FaceShape =
-  | "oval"
-  | "rectangle"
-  | "square"
-  | "round"
-  | "heart"
-  | "diamond";
-
-export type BodyType =
-  | "slim/lean"
-  | "athletic"
-  | "average"
-  | "broad shoulders"
-  | "pear shaped"
-  | "plus size";
 
 export interface StyleProfile {
   id: string;
   user_id: string;
+  gender: Gender;
   skin_tone: string;
   undertone: string;
   face_shape: string;
   best_necklines: string;
   body_type: string;
   best_fits: string;
+  proportions: string;
   colors_that_work: string[];
   colors_to_avoid: string[];
+  clothing_recommendations: string;
   skin_tone_description: string;
   body_type_description: string;
   style_notes: string;
@@ -49,8 +31,10 @@ export interface SelfieAnalysisResult {
   best_necklines: string;
   body_type: string;
   best_fits: string;
+  proportions: string;
   colors_that_work: string[];
   colors_to_avoid: string[];
+  clothing_recommendations: string;
   style_notes: string;
 }
 
@@ -61,5 +45,6 @@ export interface FitcheckResult {
   what_works: string[];
   what_doesnt: string[];
   pair_with: string[];
+  alternatives: string[];
   confidence: number;
 }
